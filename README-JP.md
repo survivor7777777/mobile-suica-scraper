@@ -22,21 +22,24 @@ JRが運営しているMobile SuicaのWebページには(少し前時代的な)�
 1. アノテーションに基づいてCaptchaデータを前処理して学習データに変換する
 1. 前処理した学習データからCNNモデルを構築する
 
-これで準備完了。あとはロボットが自動的にモバイルSuicaのウェブから利用明細のデータを取得してくれます。
+これで準備完了。あとは何度でもロボットを使ってモバイルSuicaのウェブから利用明細のデータを取得することができます。
+
+![The Process Flow](https://github.com/survivor7777777/mobile-suica-scraper/blob/master/process-flow.png?raw=true)
 
 ## ファイルの概要
 
-* getcaptcha.pl: Perl script that downloads captcha image files from the Mobile Suica web page.
-* prebuild-model/: Directory that contains a pre-build captcha solving model
-* auto-annotate.py: Python script that automatically annotates the downloaded captcha images
-* annotate.py: Python script that allows you to manually annotate the captcha immages
+* getcaptcha.pl: Mobile Suica web page から Captcha ファイルをダウンロードする Perl スクリプト
+* prebuild-model/: 事前学習されたモデルが格納されているディレクトリ
+* auto-annotate.py: ダウンロードされた Captcha ファイルに自動的にアノテーションをつける Python スクリプト
+* annotate.py: 手動でアノテーションを編集する Python スクリプト
+* preprocess.py: アノテーションがつけられたデータから分割された学習データを作る　Python スクリプト
 * model.py: Chainer CNN model
-* preprocess.py: Python script that generates a training data set from the annotated images
-* train.py: Python script that builds a captcha solving CNN model from the annotated training data
-* scrape.pl: Perl script that extracts Mobile Suica data from the Web Page by using the captcha solving CNN
-* solve.py: Python script that is called by scrape.pl to solve a Captcha
+* train.py: Mobile Suica の Captcha を解く CNN model を学習する Python スクリプト
+* scrape.pl: 学習した CNN model を使って Mobile Suica Web Page からデータを読み取る Perl スクリプト
+* scrape-mysql.pl: scrape.pl と同様だが、取得したデータを MySQL データベースに格納する Perl スクリプト
+* solve.py: script.pl が Captcha を解くために呼びだす Python スクリプト
 
-## 無保証
+# 無保証
 
 このソフトウェアは完全に無保証です。
 学習目的での使用以外はできません。
@@ -72,7 +75,7 @@ JRが運営しているMobile SuicaのWebページには(少し前時代的な)�
 
 "cpan"を使ってインストールします。
 
-    cpan WWW::Mechanize Web::Scraper
+    cpan WWW::Mechanize Web::Scraper Time::HiRes JSON Getopt::Long
 
 "perl", "cpan"のインストール方法はググって調べてください。
 
@@ -109,7 +112,7 @@ JRが運営しているMobile SuicaのWebページには(少し前時代的な)�
 
     ./preprocess.py
 
-この結果、"./segmented-data" に分割されたイメージが書き込まれます。
+この結果、"./segmented-data" ディレクトリに分割されたイメージが書き込まれます。
 
 ## 分割されたデータからCNNモデルを学習
 
@@ -137,7 +140,7 @@ JRが運営しているMobile SuicaのWebページには(少し前時代的な)�
 
 以上で準備ができました。
 
-## モバイルSuicaのデータを取得
+# モバイルSuicaのデータを取得
 
 ウェブ https://www.mobilesuica.com/ からモバイルSuicaのデータを取得するには、スクリプト "./scrape.pl" を実行します。
 
