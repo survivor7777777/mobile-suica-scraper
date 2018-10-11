@@ -23,7 +23,9 @@ You have to go through the following steps just once.
 1. Run a preprocessor to have the annotated Captcha images ready as a set of training data for building a CNN model
 1. Build a CNN model from the preprocessed training data.
 
-Then, you can run a script (robot) that automatically logs in to the Mobile Suica web application and collects your data from the application.
+Then, you can (repeatedly) run a script (robot) that automatically logs in to the Mobile Suica web application and collects your data from the application.
+
+![The process flow](https://github.com/survivor7777777/mobile-suica-scraper/blob/master/process-flow.png?raw=true)
 
 ## Files
 
@@ -35,6 +37,7 @@ Then, you can run a script (robot) that automatically logs in to the Mobile Suic
 * preprocess.py: Python script that generates a training data set from the annotated images
 * train.py: Python script that builds a captcha solving CNN model from the annotated training data
 * scrape.pl: Perl script that extracts Mobile Suica data from the Web Page by using the captcha solving CNN
+* scrape-mysql.pl: Scrape data from the Web like scrape.pl, store the data in MySQL
 * solve.py: Python script that is called by scrape.pl to solve a Captcha
 
 ## NO WARRANTY
@@ -71,7 +74,7 @@ Simply use "pip"
 
 Simply use "cpan"
 
-    cpan WWW::Mechanize Web::Scraper
+    cpan WWW::Mechanize Web::Scraper Time::HiRes JSON Getopt::Long
 
 # How To Build a CNN model for solving captcha
 
@@ -129,7 +132,7 @@ Since it contains your password, you should set it's permission appropriately li
 
 Up to here, you have to do just once.
 
-## Get data from Mobile Suica web page
+# Get data from Mobile Suica web page
 
 To get mobile suica data from https://www.mobilesuica.com/, run "./scrape.pl" script as follows:
 
