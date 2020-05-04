@@ -1,5 +1,7 @@
 # mobile-suica-scraper
 
+[日本語の説明](./README-JP.md)もあります
+
 A set of scripts that automatically collect data from the Mobile Suica web page
 https://www.mobilesuica.com/.
 
@@ -62,6 +64,7 @@ This software depends on the following libraries and tools:
   * Time::HiRes
   * JSON
   * Getopt::Long
+  * DBI
 
 ## How to install Python related libraries
 
@@ -73,7 +76,7 @@ Simply use ```pip```
 
 Simply use ```cpan```
 
-    cpan WWW::Mechanize Web::Scraper Time::HiRes JSON Getopt::Long
+    cpan WWW::Mechanize Web::Scraper Time::HiRes JSON Getopt::Long DBI
 
 # How To Build a CNN model for solving captcha
 
