@@ -1,0 +1,13 @@
+{
+    "driver": "DBI:mysql",
+    "database": "suica",
+    "user": "DB-USER",
+    "password": "DB-PASSWORD",
+    "table": "suica",
+    "options": {
+	"RaiseError": 1,
+	"PrintError": 0,
+	"AutoCommit": 0,
+	"mysql_enable_utf8": 1
+    }
+}

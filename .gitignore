@@ -1,7 +1,6 @@
 .DS_Store
 __pycache__
 data
-segmented-data
 model
 credentials.json
 dbi-config.json
