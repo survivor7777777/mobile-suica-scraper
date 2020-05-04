@@ -1,5 +1,7 @@
 # mobile-suica-scraper
 
+[English document](./README.md) is also available.d
+
 モバイルSuicaのウェブ https://www.mobilesuica.com/ からデータを自動的に集めてくるスクリプト
 
 ## 何をするソフトウェアなの？
