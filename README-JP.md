@@ -31,8 +31,7 @@ JRが運営しているMobile SuicaのWebページには(少し前時代的な)�
 * prebuild-model/: 事前学習されたモデルが格納されているディレクトリ
 * auto-annotate.py: ダウンロードされた Captcha ファイルに自動的にアノテーションをつける Python スクリプト
 * annotate.py: 手動でアノテーションを編集する Python スクリプト
-* preprocess.py: アノテーションがつけられたデータから分割された学習データを作る　Python スクリプト
-* model.py: Chainer CNN model
+* ssd.py, extractor.py, multibox*.py: Chainer CNN model
 * train.py: Mobile Suica の Captcha を解く CNN model を学習する Python スクリプト
 * scrape.pl: 学習した CNN model を使って Mobile Suica Web Page からデータを読み取る Perl スクリプト
 * solve.py: script.pl が Captcha を解くために呼びだす Python スクリプト
@@ -146,7 +145,7 @@ JRが運営しているMobile SuicaのWebページには(少し前時代的な)�
 	"user": "データベースユーザ名",
 	"password": "データベースパスワード",
 	"table": "テーブル名 (ex. expense"
-	"options": { "RaiseError": 1, "PrintError": 0, "AutoCommit": 0 }	
+	"options": { "RaiseError": 1, "PrintError": 0, "AutoCommit": 0 }
 	}
 
 このファイルもパスワードを含んでいるので、```chmod 600 ./dbi-config.json``` などとして、他のユーザから読み取られないように設定します。

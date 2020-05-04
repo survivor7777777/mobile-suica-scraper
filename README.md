@@ -20,7 +20,6 @@ This set of scripts will solve the Captcha and collect your Mobile Suica usage d
 You have to go through the following steps just once.
 1. Get Captcha images as training data
 1. Annotate the Captcha images (automatically by using a prebuild CNN model, or manually by a GUI tool)
-1. Run a preprocessor to have the annotated Captcha images ready as a set of training data for building a CNN model
 1. Build a CNN model from the preprocessed training data.
 
 Then, you can (repeatedly) run a script (robot) that automatically logs in to the Mobile Suica web application and collects your data from the application.
@@ -33,8 +32,7 @@ Then, you can (repeatedly) run a script (robot) that automatically logs in to th
 * prebuild-model/: Directory that contains a pre-build captcha solving model
 * auto-annotate.py: Python script that automatically annotates the downloaded captcha images
 * annotate.py: Python script that allows you to manually annotate the captcha immages
-* model.py: Chainer CNN model
-* preprocess.py: Python script that generates a training data set from the annotated images
+* ssd.py, extractor,py, multibox*.py: Chainer CNN model
 * train.py: Python script that builds a captcha solving CNN model from the annotated training data
 * scrape.pl: Perl script that extracts Mobile Suica data from the Web Page by using the captcha solving CNN
 * scrape-mysql.pl: Scrape data from the Web like scrape.pl, store the data in MySQL
@@ -52,6 +50,7 @@ This software depends on the following libraries and tools:
 
 * Python 3
   * chainer
+  * chainercv
   * numpy
   * scipy
   * opencv-python
@@ -68,7 +67,7 @@ This software depends on the following libraries and tools:
 
 Simply use ```pip```
 
-    pip install chainer numpy scipy opencv-python matplotlib Pillow
+    pip install chainer chainercv numpy scipy opencv-python matplotlib Pillow
 
 ## How to install Perl related libraries
 
