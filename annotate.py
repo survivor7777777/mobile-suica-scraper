@@ -3,16 +3,17 @@
 import tkinter
 import tkinter.messagebox
 from tkinter import *
-
 from PIL import Image, ImageTk
 
-import os, glob, json
+import os, glob, json, argparse
 
-COLORS = [ 'red', 'blue', 'dark green', 'purple', 'dark orange'  ]
+from constants import *
+
+COLORS = [ 'red', 'blue', 'green', 'purple', 'cyan', 'orange'  ]
 
 class Annotator:
-    
-    def __init__(self, parent):
+
+    def __init__(self, parent, dataset):
         # main frame
         self.parent = parent
         self.parent.title("Captcha Annotator")
@@ -21,9 +22,10 @@ class Annotator:
         self.parent.resizable(width = False, height = False)
 
         # initialize state
-        self.imageDir = 'data'
+        self.imageDir = dataset
         self.imageList = []
         self.scale = 4
+        self.offsetX = self.offsetY = 4
         self.state = { 'click': 0, 'x': 0, 'y': 0 }
         self.hline = None
         self.vline = None
@@ -36,8 +38,9 @@ class Annotator:
         self.dirLabel = Label(self.frame, text = "Image Directory:")
         self.dirLabel.grid(row = 0, column = 0, sticky = E)
         self.dirEntry = Entry(self.frame)
-        self.dirEntry.insert(END, self.imageDir)
+        self.dirEntry.insert(END, self.imageDir)        
         self.dirEntry.grid(row = 0, column = 1, sticky = W+E)
+        self.dirEntry.bind('<Return>', self.loadDir)
         self.loadButton = Button(self.frame, text = "Load", command = self.loadDir)
         self.loadButton.grid(row = 0, column = 2, sticky = W+E)
 
@@ -48,7 +51,7 @@ class Annotator:
         self.textEntry.grid(row = 1, column = 1, sticky = W+E)
 
         # GUI parts - main panel for annotating
-        self.mainPanel = Canvas(self.frame, cursor = 'tcross', width = 350, height = 120)
+        self.mainPanel = Canvas(self.frame, cursor = 'tcross', width = 360, height = 130)
         self.mainPanel.bind("<Button-1>", self.mouseClick)
         self.mainPanel.bind("<Motion>", self.mouseMove)
         self.parent.bind("<Escape>", self.cancelBBox)  # press <ESCAPE> button to cancel the current bbox
@@ -66,8 +69,8 @@ class Annotator:
 
         # GUI parts - mouse position
         self.mouse = Label(self.frame, text = '')
-        self.mouse.grid(row = 4, column = 0, columnspan = 2, sticky = W+E)
-        
+        self.mouse.grid(row = 5, column = 0, columnspan = 2, sticky = W+E)
+
         # GUI parts - control panel
         self.controlPanel = Frame(self.frame)
         self.prevButton = Button(self.controlPanel, text='<< Prev', width = 10, command = self.prevImage)
@@ -80,16 +83,20 @@ class Annotator:
         self.tmpLabel.pack(side = LEFT, padx = 5)
         self.idxEntry = Entry(self.controlPanel, width = 5)
         self.idxEntry.pack(side = LEFT)
+        self.idxEntry.bind('<Return>', self.gotoImage)
         self.goBtn = Button(self.controlPanel, text = 'Go', command = self.gotoImage)
         self.goBtn.pack(side = LEFT)
         self.saveBtn = Button(self.controlPanel, text = 'Save', command = self.save)
         self.saveBtn.pack(side = RIGHT)
         self.controlPanel.grid(row = 6, column = 0, columnspan = 3, sticky = W+E)
 
-    def loadDir(self):
+    def loadDir(self, event=None):
         newDir = self.dirEntry.get()
         if self.imageDir != newDir:
             self.save()
+        if not os.path.isdir(newDir):
+            messagebox.showerror("Error", "{}: No such directory.".format(newDir))
+            return
         self.imageDir = newDir
         self.imageList = glob.glob(os.path.join(self.imageDir, "*.gif"))
         self.imageList.sort()
@@ -107,7 +114,7 @@ class Annotator:
         for i, imageFile in enumerate(self.imageList):
             key = self.imageList[i] = os.path.basename(imageFile)
             if key not in self.dataset:
-                self.dataset[key] = { 'text': "", 'bbs': [] }
+                self.dataset[key] = { 'file': key, 'text': "", 'bbs': [] }
         self.save()
         self.currentImageIndex = 0
         self.loadImage()
@@ -119,10 +126,9 @@ class Annotator:
         # load image
         imageFile = os.path.join(self.imageDir, self.currentImageKey)
         self.img = Image.open(imageFile)
-        self.img = self.img.resize((self.img.width * self.scale, self.img.height * self.scale))
-        self.tkimg = ImageTk.PhotoImage(self.img)
-        self.mainPanel.config(width = max(self.tkimg.width(), 350), height = max(self.tkimg.height(), 120))
-        self.mainPanel.create_image(0, 0, image = self.tkimg, anchor = NW)
+        self.tkimg = ImageTk.PhotoImage(self.img.resize((self.img.width * self.scale, self.img.height * self.scale)))
+        self.mainPanel.config(width = self.tkimg.width() + self.offsetX * 2, height = self.tkimg.height() + self.offsetY * 2)
+        self.mainPanel.create_image(self.offsetX, self.offsetY, image = self.tkimg, anchor = 'nw')
 
         # set image label
         self.progLabel.config(text = "{} [{:04d}/{:04d}]".format(self.currentImageKey, self.currentImageIndex + 1, len(self.imageList)))
@@ -133,37 +139,52 @@ class Annotator:
         self.bboxListbox.delete(0, END)
         self.bboxIdList = []
         for i, bb in enumerate(self.currentData['bbs']):
-            self.bboxListbox.insert(END, '({}, {})-({}, {})'.format(bb[0], bb[1], bb[2], bb[3]))
+            self.bboxListbox.insert(END, '({}, {})-({}, {}) [{} x {}]'.format(bb[0], bb[1], bb[2], bb[3], bb[2]-bb[0], bb[3]-bb[1]))
             color = COLORS[i % len(COLORS)]
             self.bboxListbox.itemconfig(i, fg = color)
             rectId = self.drawBBox(bb, color)
             self.bboxIdList.append(rectId)
 
     def drawBBox(self, bb, color):
-        bb = [int(e * self.scale) for e in bb]
-        rectId = self.mainPanel.create_rectangle(bb[0], bb[1], bb[2], bb[3], width=2, outline=color)
+        bb = self.scaleUpBB(bb)
+        rectId = self.mainPanel.create_rectangle(bb[1], bb[0], bb[3], bb[2], width=self.scale, outline=color)
         return rectId
-            
+
     def save(self):
         if self.datasetFile is None:
             return
         if self.currentImageKey:
             self.currentData['text'] = self.textEntry.get()
-            self.currentData['bbs'].sort(key=lambda e: e[0])
+            self.currentData['bbs'].sort(key=lambda e: e[1])
             self.dataset[self.currentImageKey] = self.currentData
         with open(self.datasetFile, "w") as fp:
             json.dump(self.dataset, fp, indent = 2)
-        
+
+    def scaleDown(self, y, x):
+        x = int((x - self.offsetX) / self.scale)
+        y = int((y - self.offsetY) / self.scale)
+        x = min(max(0, x), self.img.width-1)
+        y = min(max(0, y), self.img.height-1)
+        return y, x
+
+    def scaleUp(self, y, x):
+        x = x * self.scale + self.offsetX + int(self.scale/2)
+        y = y * self.scale + self.offsetY + int(self.scale/2)
+        return y, x
+
+    def scaleUpBB(self, bb):
+        return [*self.scaleUp(bb[0], bb[1]), *self.scaleUp(bb[2], bb[3])]
+
     def mouseClick(self, event):
+        y, x = self.scaleDown(event.y, event.x)
         if self.state['click'] == 0:
-            self.state['x'], self.state['y'] = event.x, event.y
+            self.state['y'], self.state['x'] = y, x
             self.state['click'] = 1
         else:
-            bb = [ min(self.state['x'], event.x), min(self.state['y'], event.y),
-                   max(self.state['x'], event.x), max(self.state['y'], event.y) ]
-            bb = [int(e / self.scale) for e in bb]
+            bb = [ min(self.state['y'], y), min(self.state['x'], x),
+                   max(self.state['y'], y), max(self.state['x'], x) ]
             i = len(self.bboxIdList)
-            self.bboxListbox.insert(END, '({}, {})-({}, {})'.format(bb[0], bb[1], bb[2], bb[3]))
+            self.bboxListbox.insert(END, '({}, {})-({}, {}) [{} x {}]'.format(bb[0], bb[1], bb[2], bb[3], bb[2]-bb[0], bb[3]-bb[1]))
             color = COLORS[i % len(COLORS)]
             self.bboxListbox.itemconfig(i, fg = color)
             self.currentData['bbs'].append(bb)
@@ -172,18 +193,20 @@ class Annotator:
             self.state['click'] = 0
 
     def mouseMove(self, event):
-        self.mouse.config(text = '({}, {})'.format(int(event.x / self.scale), int(event.y / self.scale)))
+        y, x = self.scaleDown(event.y, event.x)
+        self.mouse.config(text = '({}, {})'.format(y, x))
         if self.tkimg:
+            ry, rx = self.scaleUp(y, x)
             if self.hline:
                 self.mainPanel.delete(self.hline)
-            self.hline = self.mainPanel.create_line(0, event.y, self.tkimg.width(), event.y, width=1, fill='gray')
+            self.hline = self.mainPanel.create_line(0, ry, self.tkimg.width()+self.offsetX, ry, width=1, fill='gray')
             if self.vline:
                 self.mainPanel.delete(self.vline)
-            self.vline = self.mainPanel.create_line(event.x, 0, event.x, self.tkimg.height(), width=1, fill='gray')
+            self.vline = self.mainPanel.create_line(rx, 0, rx, self.tkimg.height()+self.offsetY, width=1, fill='gray')
         if self.state['click'] == 1:
             if self.bboxId:
                 self.mainPanel.delete(self.bboxId)
-            bb = [int(e / self.scale) for e in (self.state['x'], self.state['y'], event.x, event.y)]
+            bb = [self.state['y'], self.state['x'], y, x]
             color = COLORS[len(self.bboxIdList) % len(COLORS)]
             self.bboxId = self.drawBBox(bb, color)
 
@@ -221,15 +244,26 @@ class Annotator:
         self.bboxIdList = []
         self.currentData['bbs'] = []
 
-    def gotoImage(self):
-        index = int(self.idxEntry.get()) - 1
+    def gotoImage(self, event=None):
+        text = self.idxEntry.get()
+        try:
+            index = int(text) - 1
+        except ValueError:
+            messagebox.showerror("Error", "{}: Not a number.".format(text))
+            return
         if 0 <= index and index < len(self.imageList):
             self.save()
             self.currentImageIndex = index
             self.loadImage()
-    
+        else:
+            messagebox.showerror("Error", "{}: out of range.".format(text))
+
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Mobile Suica Scraper -- Training Data Annotator')
+    parser.add_argument('--dataset', default=DEFAULT_DATASET_DIR,
+                        help='input dataset (default={})'.format(DEFAULT_DATASET_DIR))
+    args = parser.parse_args()
     root = Tk()
-    ann = Annotator(root)
+    ann = Annotator(root, dataset=args.dataset)
     ann.loadDir()
     root.mainloop()

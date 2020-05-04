@@ -1,0 +1,12 @@
+{
+    "driver": "DBI:SQLite",
+    "database": "suica.db",
+    "user": "dummy",
+    "password": "dummy",
+    "table": "suica",
+    "options": {
+	"RaiseError": 1,
+	"PrintError": 0,
+	"AutoCommit": 0
+    }
+}

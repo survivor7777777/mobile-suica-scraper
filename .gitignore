@@ -4,5 +4,6 @@ data
 segmented-data
 model
 credentials.json
-mysql-config.json
+dbi-config.json
 log
+.markdown-preview.html

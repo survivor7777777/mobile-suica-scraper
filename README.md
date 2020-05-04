@@ -9,7 +9,7 @@ Mobile Suica is very popular electric money in Japan.
 If you have one, you would probably like to get the detailed statement digitally.
 However, JR's Mobile Suica page is protected by (a little bit old-fashioned) Captcha like
 
-![Mobile Suica Captcha Image](https://github.com/survivor7777777/mobile-suica-scraper/blob/master/sample-Captcha.gif?raw=true)  
+![Mobile Suica Captcha Image](https://github.com/survivor7777777/mobile-suica-scraper/blob/master/sample-Captcha.gif?raw=true)
 
 to prevent a robot from accessing the data.
 
@@ -66,13 +66,13 @@ This software depends on the following libraries and tools:
 
 ## How to install Python related libraries
 
-Simply use "pip"
+Simply use ```pip```
 
     pip install chainer numpy scipy opencv-python matplotlib Pillow
 
 ## How to install Perl related libraries
 
-Simply use "cpan"
+Simply use ```cpan```
 
     cpan WWW::Mechanize Web::Scraper Time::HiRes JSON Getopt::Long
 
@@ -80,37 +80,30 @@ Simply use "cpan"
 
 ## Download captcha images from the web
 
-Run "getcaptcha.pl" script as follows:
+Run ```getcaptcha.pl``` script as follows:
 
     ./getcaptcha.pl --interval=500000 100
 
-In this case, this script downloads 100 images from the web at 500ms intervals in "./data" directory.
-Do not specify a small interval, since the script may be considered a DOS attack.
+In this case, this script downloads 100 images from the web at 500ms intervals in ```./data``` directory.  Do not specify a small interval, since the script may be considered a DOS attack.
 
 ## Automatically or manually annotate the downloaded images
 
-Run "auto-annotate.py" script to automatically annotate the downloaded images as follows:
+Run ```auto-annotate.py``` script to automatically annotate the downloaded images as follows:
 
     ./auto-annotate.py
 
-Then, the script generates "./data/dataset.json" file that contains the automatically generated annotation.
+Then, the script generates ```./data/dataset.json``` file that contains the automatically generated annotation.
 
-The prebuild model is not 100% accurate.  The auto-generated annotation may contain 15-20% errors.
-Thus you should also review and revise the annotation by using "annotate.py" script as follows:
+The prebuild model is not 100% accurate.  The auto-generated annotation may contain about 10% errors.
+Thus you should also review and revise the annotation by using ```annotate.py``` script as follows:
 
     ./annotate.py
 
-Then, a window panel will open.  You can interactively edit the automatically generated annotation.
-
-## Preprocess the annotated images
-
-Run "preprocess.py" script to create segmented images based on the given annotation into "segmented-data" directory as follows:
-
-    ./preprocess.py
+Then, a window panel will open.  You can interactively edit the automatically generated annotation. 
 
 ## Build a captcha solving CNN model from the segmented images
 
-Run "train.py" script to build a captcha solving CNN model in "model" directory
+Run ```train.py``` script to build a captcha solving CNN model in ```model``` directory
 
     ./train.py
 
@@ -119,11 +112,11 @@ If your machine has NVIDIA GPU and you have CUDA library installed, add --gpu=0 
 
 ## Create a file containing mobile suica credentials
 
-Create a file './credentials.json' with the following content:
+Create a file ```./credentials.json``` with the following content:
 
     {
-      "user": "YOUR MOBILE SUICA E-Mail ADDRESS",
-      "password": "YOUR MOBILE SUICA PASSWORD"
+      "user": "YOUR Mobile SUICA Account (E-Mail address)",
+      "password": "YOUR Mobile SUICA Password"
     }
 
 Since it contains your password, you should set it's permission appropriately like the following
@@ -134,11 +127,46 @@ Up to here, you have to do just once.
 
 # Get data from Mobile Suica web page
 
-To get mobile suica data from https://www.mobilesuica.com/, run "./scrape.pl" script as follows:
+To get mobile suica data from https://www.mobilesuica.com/, run ```./scrape.pl``` script as follows:
 
     ./scrape.pl
 
-Then, you will see the list of your mobile suica usage in the standard output.
-In "./log" directory you can find log information.
+Then, you will see the list of your mobile suica usage in the standard output.  In ```./data``` directory, newly downloaded captcha files will be stored. You can make use of them for the additional training of the model.  In ```./log``` directory you can find log information.
+
+If you want to store the scraped data in a database, prepare a file named ```./dbi-config.json``` with the following content:
+
+	{
+	"driver": "DBI driver name (ex. DBI:mysql, DBI:SQLite",
+	"database": "database name",
+	"user": "database user name",
+	"password": "database password",
+	"table": "table name (ex. expense)",
+	"options": { "RaiseError": 1, "PrintError": 0, "AutoCommit": 0 }
+	}
+
+This file also contains your password, so you should set it's permission appropriately with ```chmod 600 ./dbi-config.json```.
+
+You have to create a database table with the following SQL statements. (Here, we assumed the database table is named ```expense```.)
+
+	create table expense (
+	id int not null auto_increment,
+	date date,
+	type1 varchar(16),
+	loc1 varchar(16),
+	type2 varchar(16),
+	loc2 varchar(16),
+	balance int,
+	delta int
+	remarks varchar(256),
+	primary key(id)
+	);
+
+	create index expense_date on expense(date);
+
+Then executing　```./scrape.pl --db``` will scrape the data and store them in the database table specified.
 
 Enjoy!
+
+## How does this software work?
+
+TBD.

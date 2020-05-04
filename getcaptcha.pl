@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 use strict;
 use utf8;
@@ -11,6 +11,8 @@ binmode(STDOUT, ":utf8");
 
 my $interval = 500000;  # 0.5 seconds
 my $output_dir = "data";
+my $help;
+my $N;
 
 # subroutines
 
@@ -20,7 +22,7 @@ sub save_file {
     my $data = shift;
     my $filename;
     for (;;) {
-       $filename = sprintf("%s/%04d.gif", $output_dir, $file_counter++);
+       $filename = sprintf("%s/%05d.gif", $output_dir, $file_counter++);
        last if (! -f $filename);
     }
     print STDERR "$filename\n";
@@ -37,20 +39,20 @@ sub save_file {
 GetOptions(
     "output|o=s" => \$output_dir,
     "interval|i=s" => \$interval,
+    "help|h" => \$help,
 );
 
-if (@ARGV != 1) {
+if ($help || @ARGV != 1 || ($N = $ARGV[0]) == 0) {
     print STDERR "Get Captcha Image Files from the Mobile Suica web page\n";
     print STDERR "Usage: $0 [ --output=dir ] [ --interval=M ] N\n";
-    print STDERR "N:            number of images to newly get.\n";
-    print STDERR "--output=dir: specify the directory to save captcha file\n";
+    print STDERR "--output=dir  specify the directory to save captcha file\n";
     print STDERR "              default=data\n";
-    print STDERR "--interval=M: specify the download interval time in microseconds\n";
+    print STDERR "--interval=M  specify the download interval time in microseconds\n";
     print STDERR "              default=500000 (0.5 seconds)\n";
+    print STDERR "--help        show this message\n";
+    print STDERR "N             number of images to get.\n";
     exit 1;
 }
-
-my $N = $ARGV[0];
 
 mkpath($output_dir);
 

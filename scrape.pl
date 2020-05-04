@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 use strict;
 use utf8;
@@ -7,20 +7,25 @@ use Web::Scraper;
 use JSON;
 use File::Path;
 use File::Basename;
+use DBI;
 use Getopt::Long qw(:config posix_default no_ignore_case gnu_compat auto_abbrev);
 binmode(STDOUT, ":utf8");
 binmode(STDERR, ":utf8");
 
 my $credential_file = "credentials.json";
-my $model_file = "model/parameters.json";
+my $model_dir = "model";
 my $gpu = -1;
-my $output_dir = "log";
+my $log_dir = "log";
+my $data_dir = "data";
+my $use_db;
+my $dbi_config_file = "dbi-config.json";
 
 GetOptions(
     "credentials|c=s" => \$credential_file,
-    "model|m=s" => \$model_file,
+    "model|m=s" => \$model_dir,
     "gpu|g=i" => \$gpu,
-    "output|o=s" => \$output_dir,
+    "data|d=s" => \$data_dir,
+    "db" => \$use_db,
 );
 
 my $home_dir = dirname($0);
@@ -55,27 +60,27 @@ sub new_file {
     my $base = shift;
     my $ext = shift;
     for (my $i = 0; ; $i++) {
-	my $file_name = sprintf("%s%d%s", $base, $i, $ext);
+	my $file_name = sprintf("%s%05d%s", $base, $i, $ext);
 	return $file_name unless -e $file_name;
     }
 }
 
-# check if output directory exists
-if (! -d $output_dir) {
-    mkpath($output_dir);
-}
-my $log_file = "$output_dir/scrape.log";
+# check if data and log directories exist
+mkpath($data_dir) unless -d $data_dir;
+mkpath($log_dir) unless -d $log_dir;
+
+my $log_file = "$log_dir/scrape.log";
 open(my $log, ">>:utf8", $log_file) || die "$log_file: $!";
 print $log "#-------- " . localtime() . " --------\n";
 
 # read credential file
 if (! -r $credential_file) {
     print STDERR "$credential_file: not found\n";
-    print STDERR "You must create a file like the following:\n";
+    print STDERR "You must create a file named 'credential_file' with the following content:\n";
     print STDERR <<EOS;
 {
-  "user": "YOUR SUICA ACCOUNT (Mail-Address)",
-  "password": "YOUR SUICA PASSWORD"
+  "user": "YOUR Mobile SUICA Account (E-Mail address)",
+  "password": "YOUR Mobile SUICA Password"
 }
 EOS
     print STDERR "You should set the permission appropriately by executing the following command so that others cannot read it.\n";
@@ -83,6 +88,12 @@ EOS
     exit 1;
 }
 my $credentials = decode_json(read_file($credential_file));
+
+# read dbi-config if needed
+my $dbi_config;
+if ($use_db) {
+    $dbi_config = decode_json(read_file($dbi_config_file));
+}
 
 # initialize WWW::Mechanize
 my $cookie_jar = {};
@@ -95,7 +106,83 @@ push @{ $mech->requests_redirectable }, 'POST';
 my $url = [
 "https://www.mobilesuica.com/",
 "https://www.mobilesuica.com/iq/ir/SuicaDisp.aspx?returnId=SFRCMMEPC03",
-];
+    ];
+
+# output package
+
+package output_csv;
+
+sub new {
+    my $class = shift;
+    return bless {}, $class;
+}
+
+sub write {
+    my $self = shift;
+    my @list = @_;
+    print "\"" . join("\",\"", @list) . "\"\n";    
+}
+
+sub close {
+    my $self = shift;
+    # do nothing
+}
+
+package output_db;
+
+sub new {
+    my $class = shift;
+    
+    my $dbh = DBI->connect($dbi_config->{'driver'} . ":" . $dbi_config->{'database'},
+			   $dbi_config->{'user'}, $dbi_config->{'password'},
+			   $dbi_config->{'options'});
+
+    eval {
+	my $sql = <<EOS;
+create table $dbi_config->{'table'}(
+id int auto_increment primary key,
+date date,
+type1 varchar(16),
+loc1 varchar(16),
+type2 varchar(16),
+loc2 varchar(16),
+balance int,
+delta int,
+remarks varchar(256)
+)
+EOS
+	$dbh->do($sql);
+	$dbh->do("create index " . $dbi_config->{'table'} . "_date on " . $dbi_config->{'table'} . "(date)");
+    };
+
+    my $stmt0 = $dbh->prepare("select max(date) from " . $dbi_config->{'table'});
+    $stmt0->execute();
+    my $maxdate = eval {
+	($stmt0->fetchrow_array)[0];
+    } || "1900-01-01";
+    $stmt0->finish;
+
+    my $stmt = $dbh->prepare("insert into " . $dbi_config->{'table'} . "(date,type1,loc1,type2,loc2,balance,delta) values(?,?,?,?,?,?,?)");
+
+    return bless { dbh => $dbh, stmt => $stmt, maxdate => $maxdate }, $class;
+}
+
+sub write {
+    my $self = shift;
+    my @list = @_;
+
+    return if $list[0] le $self->{'maxdate'};
+    $self->{'stmt'}->execute(@list);
+}
+
+sub close {
+    my $self = shift;
+    $self->{'stmt'}->finish;
+    $self->{'dbh'}->commit;
+    $self->{'dbh'}->disconnect;
+}
+
+package main;
 
 # login loop
 my $login_success = 0;
@@ -117,29 +204,16 @@ for (my $retry = 0; $retry < 3; $retry++) {
     $mech->back() || die "could not go back";
 
     # solve the captcha
-    my $captcha_string = "";
-    pipe(my $parent_read, my $child_write);
-    pipe(my $child_read, my $parent_write);
-    $child_write->autoflush(1);
-    $parent_write->autoflush(1);
-    my $pid = fork(); die "fork: $!" unless defined($pid);
-    if ($pid == 0) { # child process
-	close($parent_read);
-	close($parent_write);
-	open(STDIN, "<&", $child_read);
-	open(STDOUT, ">&", $child_write);
-	exec("./solve.py --model=$model_file --gpu=$gpu");
-    }
-    else { # parent process
-	close($child_read);
-	close($child_write);
-	syswrite($parent_write, $captcha_image);
-	close($parent_write);
-	chop($captcha_string = <$parent_read>);
-	close($parent_read);
-    }
-    my $gif_file = new_file("$output_dir/captcha-", ".gif");
+    my $gif_file = new_file("$data_dir/", ".gif");
     save_file($gif_file, $captcha_image);
+
+    my $captcha_string = "";
+    open(my $pipe, "-|", "./solve.py --model=$model_dir --file $gif_file") || die "./solve.py: $!";
+    chomp(my $result = <$pipe>);
+    if ($result =~ /^.*\.gif (.*)$/) {
+	$captcha_string = $1;
+    }
+    continue unless length($captcha_string) == 5;
 
     # fill values in form1
     $mech->form_id("form1");
@@ -185,8 +259,9 @@ my $scraper = scraper {
 
 my $year = (localtime)[5] + 1900;
 my $month = (localtime)[4] + 1;
-
 my $result = $scraper->scrape($r4->decoded_content);
+my $output = $use_db ? new output_db() : new output_csv();
+
 for my $row (@{$result->{tr}}) {
     next unless $row->{td};
     next unless scalar(@{$row->{td}}) == 7;
@@ -207,9 +282,10 @@ for my $row (@{$result->{tr}}) {
     $list[5] =~ s/[¥,]//g;
     $list[6] =~ s/[¥,]//g;
 
-    print "\"" . join("\",\"", @list) . "\"\n";
+    $output->write(@list);
 }
 
+$output->close();
 close($log);
 
 1;
