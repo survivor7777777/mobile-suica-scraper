@@ -186,7 +186,7 @@ package main;
 
 # login loop
 my $login_success = 0;
-for (my $retry = 0; $retry < 3; $retry++) {
+for (my $retry = 0; $retry < 5; $retry++) {
 
     # fetch LOGIN page
     my $r0 = $mech->get($url->[0]);
