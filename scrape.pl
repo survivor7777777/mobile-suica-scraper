@@ -213,7 +213,7 @@ for (my $retry = 0; $retry < 3; $retry++) {
     if ($result =~ /^.*\.gif (.*)$/) {
 	$captcha_string = $1;
     }
-    continue unless length($captcha_string) == 5;
+    next unless length($captcha_string) == 5;
 
     # fill values in form1
     $mech->form_id("form1");
