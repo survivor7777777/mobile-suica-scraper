@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import itertools
 import numpy as np
 import chainer

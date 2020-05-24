@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import chainer
 
 from extractor import Extractor
