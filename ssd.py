@@ -29,7 +29,7 @@ class SSD(chainer.Chain):
 
     def to_gpu(self, device=None):
         super(SSD, self).to_gpu(device)
-        self.coder.to_gpu()
+        self.coder.to_gpu(device)
 
     def forward(self, x):
         return self.multibox(self.extractor(x))
@@ -49,8 +49,8 @@ class SSD(chainer.Chain):
         for mb_loc, mb_conf in zip(mb_locs, mb_confs):
             bbox, label, score = self.coder.decode(
                 mb_loc, mb_conf, self.nms_thresh, self.score_thresh)
-            bboxes.append(chainer.backends.cuda.to_cpu(bbox))
-            labels.append(chainer.backends.cuda.to_cpu(label))
-            scores.append(chainer.backends.cuda.to_cpu(score))
+            bboxes.append(bbox)
+            labels.append(label)
+            scores.append(score)
 
         return bboxes, labels, scores

@@ -127,7 +127,7 @@ def main():
         trigger=log_interval)
     trainer.extend(extensions.ProgressBar(update_interval=5))
 
-    trainer.extend(Evaluator(test_iter, model))
+    trainer.extend(Evaluator(test_iter, model, device=args.gpu))
 
     trainer.extend(extensions.snapshot(filename='snapshot_epoch_{.updater.epoch}'),
         trigger=(args.frequency, 'epoch'))

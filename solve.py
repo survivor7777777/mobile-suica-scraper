@@ -28,18 +28,26 @@ class Solver:
         chainer.serializers.load_npz(os.path.join(dirname, npz_file), self.model)
 
         if gpu >= 0:
-            chainer.cuda.get_device_from_id(gpu).use()
-            self.model.to_gpu()
+            chainer.backends.cuda.get_device_from_id(gpu).use()
+            self.model.to_gpu(gpu)
+
+    @property
+    def xp(self):
+        return self.model.xp
 
     def solve(self, filename):
+        xp = self.xp
         gif = cv2.VideoCapture(filename)
         _, color_image = gif.read(0)
         gray_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
         h, w = gray_image.shape[:2]
-        img = np.array(gray_image / 255.0, dtype=np.float32).reshape(1, h, w)
+        img = xp.array(gray_image / 255.0, dtype=xp.float32).reshape(1, 1, h, w)
 
-        bboxes, labels, scores = self.model.predict([img])
-        bbox, label, score = bboxes[0], labels[0], scores[0]
+        output = self.model.predict(img)
+        bbox, label, score = output[0][0], output[1][0], output[2][0]
+        bbox = chainer.dataset.to_device(-1, bbox)
+        label = chainer.dataset.to_device(-1, label)
+        score = chainer.dataset.to_device(-1, score)
 
         if len(label) > NCHARS:
             indices = np.argsort(score)[-1:-NCHARS-1:-1]

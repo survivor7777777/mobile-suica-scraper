@@ -34,7 +34,7 @@ Then, you can (repeatedly) run a script (robot) that automatically logs in to th
 * prebuild-model/: Directory that contains a pre-build captcha solving model
 * auto-annotate.py: Python script that automatically annotates the downloaded captcha images
 * annotate.py: Python script that allows you to manually annotate the captcha immages
-* ssd.py, extractor,py, multibox*.py: Chainer CNN model
+* ssd.py, extractor,py, multibox\*.py: Chainer CNN model
 * train.py: Python script that builds a captcha solving CNN model from the annotated training data
 * scrape.pl: Perl script that extracts Mobile Suica data from the Web Page by using the captcha solving CNN
 * scrape-mysql.pl: Scrape data from the Web like scrape.pl, store the data in MySQL
@@ -46,7 +46,7 @@ ABSOLUTELY NO WARRANTY.
 THIS SOFTWARE IS FOR EDUCATIONAL PURPOSES ONLY.
 USE IT AT YOUR OWN RISK.
 
-# Prerequisites
+## Prerequisites
 
 This software depends on the following libraries and tools:
 
@@ -68,53 +68,61 @@ This software depends on the following libraries and tools:
 
 ## How to install Python related libraries
 
-Simply use ```pip```
+Simply use `pip`
 
     pip install chainer chainercv numpy scipy opencv-python matplotlib Pillow
 
 ## How to install Perl related libraries
 
-Simply use ```cpan```
+Simply use `cpan`
 
     cpan WWW::Mechanize Web::Scraper Time::HiRes JSON Getopt::Long DBI
 
-# How To Build a CNN model for solving captcha
+## How To Build a CNN model for solving captcha
 
-## Download captcha images from the web
+If you don't like to train your own model, you can skip this chapter by simply running the following command:
 
-Run ```getcaptcha.pl``` script as follows:
+    ln -s prebuild-model model
+
+### Download captcha images from the web
+
+Run `getcaptcha.pl` script as follows:
 
     ./getcaptcha.pl --interval=500000 100
 
-In this case, this script downloads 100 images from the web at 500ms intervals in ```./data``` directory.  Do not specify a small interval, since the script may be considered a DOS attack.
+In this case, this script downloads 100 images from the web at 500ms intervals in `./data` directory.  Do not specify a small interval, since the script may be considered a DOS attack.
 
-## Automatically or manually annotate the downloaded images
+### Automatically or manually annotate the downloaded images
 
-Run ```auto-annotate.py``` script to automatically annotate the downloaded images as follows:
+Run `auto-annotate.py` script to automatically annotate the downloaded images as follows:
 
     ./auto-annotate.py
 
-Then, the script generates ```./data/dataset.json``` file that contains the automatically generated annotation.
+Then, the script generates `./data/dataset.json` file that contains the automatically generated annotation.
 
 The prebuild model is not 100% accurate.  The auto-generated annotation may contain about 10% errors.
-Thus you should also review and revise the annotation by using ```annotate.py``` script as follows:
+Thus you should also review and revise the annotation by using `annotate.py` script as follows:
 
     ./annotate.py
 
 Then, a window panel will open.  You can interactively edit the automatically generated annotation. 
 
-## Build a captcha solving CNN model from the segmented images
+### Build a captcha solving CNN model from the segmented images
 
-Run ```train.py``` script to build a captcha solving CNN model in ```model``` directory
+Run `train.py` script to build a captcha solving CNN model in `model` directory
 
     ./train.py
 
 This may take some time (depending on your machine power -- can be a few hundred seconds or a few hours).
 If your machine has NVIDIA GPU and you have CUDA library installed, add --gpu=0 option to make use of the GPU.
 
-## Create a file containing mobile suica credentials
+You will have a trained model in `./model` directory.
 
-Create a file ```./credentials.json``` with the following content:
+## Get data from Mobile Suica web page
+
+### Create a file containing mobile suica credentials
+
+Create a file `./credentials.json` with the following content:
 
     {
       "user": "YOUR Mobile SUICA Account (E-Mail address)",
@@ -127,15 +135,17 @@ Since it contains your password, you should set it's permission appropriately li
 
 Up to here, you have to do just once.
 
-# Get data from Mobile Suica web page
+### Get data from Mobile Suica web page in CSV format
 
-To get mobile suica data from https://www.mobilesuica.com/, run ```./scrape.pl``` script as follows:
+To get mobile suica data from https://www.mobilesuica.com/, run `./scrape.pl` script as follows:
 
     ./scrape.pl
 
-Then, you will see the list of your mobile suica usage in the standard output.  In ```./data``` directory, newly downloaded captcha files will be stored. You can make use of them for the additional training of the model.  In ```./log``` directory you can find log information.
+Then, you will see the list of your mobile suica usage in the standard output.  In `./data` directory, newly downloaded captcha files will be stored. You can make use of them for the additional training of the model.  In `./log` directory you can find log information.
 
-If you want to store the scraped data in a database, prepare a file named ```./dbi-config.json``` with the following content:
+### Get data from Mobile Suica web page in a database
+
+If you want to store the scraped data in a database, prepare a file named `./dbi-config.json` with the following content:
 
 	{
 	"driver": "DBI driver name (ex. DBI:mysql, DBI:SQLite",
@@ -146,9 +156,9 @@ If you want to store the scraped data in a database, prepare a file named ```./d
 	"options": { "RaiseError": 1, "PrintError": 0, "AutoCommit": 0 }
 	}
 
-This file also contains your password, so you should set it's permission appropriately with ```chmod 600 ./dbi-config.json```.
+This file also contains your password, so you should set it's permission appropriately with `chmod 600 ./dbi-config.json`.
 
-You have to create a database table with the following SQL statements. (Here, we assumed the database table is named ```expense```.)
+You have to create a database table with the following SQL statements. (Here, we assumed the database table is named `expense`.)
 
 	create table expense (
 	id int not null auto_increment,
@@ -165,7 +175,7 @@ You have to create a database table with the following SQL statements. (Here, we
 
 	create index expense_date on expense(date);
 
-Then executing　```./scrape.pl --db``` will scrape the data and store them in the database table specified.
+Then executing　`./scrape.pl --db` will scrape the data and store them in the database table specified.
 
 Enjoy!
 
