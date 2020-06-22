@@ -80,7 +80,7 @@ Simply use `cpan`
 
 ## How To Build a CNN model for solving captcha
 
-If you don't like to train your own model, you can skip this chapter by simply running the following command:
+If you don't like to build your own model, you can skip this chapter and proceed to the next chapter **Get data from Mobile Suica web page** by simply running the following command:
 
     ln -s prebuild-model model
 

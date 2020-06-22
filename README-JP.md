@@ -33,7 +33,7 @@ JRが運営しているMobile SuicaのWebページには(少し前時代的な)�
 * prebuild-model/: 事前学習されたモデルが格納されているディレクトリ
 * auto-annotate.py: ダウンロードされた Captcha ファイルに自動的にアノテーションをつける Python スクリプト
 * annotate.py: 手動でアノテーションを編集する Python スクリプト
-* ssd.py, extractor.py, multibox*.py: Chainer CNN model
+* ssd.py, extractor.py, multibox\*.py: Chainer CNN model
 * train.py: Mobile Suica の Captcha を解く CNN model を学習する Python スクリプト
 * scrape.pl: 学習した CNN model を使って Mobile Suica Web Page からデータを読み取る Perl スクリプト
 * solve.py: script.pl が Captcha を解くために呼びだす Python スクリプト
@@ -83,7 +83,7 @@ JRが運営しているMobile SuicaのWebページには(少し前時代的な)�
 
 ## モデルの学習
 
-自分でモデルを学習させたい場合は、この章の説明に従ってください。それが面倒な場合は、事前学習させたモデルが利用できます。単に以下のコマンドを実行して、次の章に進んでください。
+自分でモデルを学習させたい場合は、この章の説明に従ってください。それが面倒な場合は、事前学習させたモデルが利用できます。単に以下のコマンドを実行して、次の章「**モバイルSuicaのデータを取得**」に進んでください。
 
     ln -s prebuild-model model
 
